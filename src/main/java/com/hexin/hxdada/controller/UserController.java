@@ -10,22 +10,11 @@ import com.hexin.hxdada.config.WxOpenConfig;
 import com.hexin.hxdada.constant.UserConstant;
 import com.hexin.hxdada.exception.BusinessException;
 import com.hexin.hxdada.exception.ThrowUtils;
-import com.hexin.hxdada.model.dto.user.UserAddRequest;
-import com.hexin.hxdada.model.dto.user.UserLoginRequest;
-import com.hexin.hxdada.model.dto.user.UserQueryRequest;
-import com.hexin.hxdada.model.dto.user.UserRegisterRequest;
-import com.hexin.hxdada.model.dto.user.UserUpdateMyRequest;
-import com.hexin.hxdada.model.dto.user.UserUpdateRequest;
+import com.hexin.hxdada.model.dto.user.*;
 import com.hexin.hxdada.model.entity.User;
 import com.hexin.hxdada.model.vo.LoginUserVO;
 import com.hexin.hxdada.model.vo.UserVO;
 import com.hexin.hxdada.service.UserService;
-
-import java.util.List;
-import javax.annotation.Resource;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import lombok.extern.slf4j.Slf4j;
 import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
 import me.chanjar.weixin.common.bean.oauth2.WxOAuth2AccessToken;
@@ -33,12 +22,12 @@ import me.chanjar.weixin.mp.api.WxMpService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.util.DigestUtils;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.List;
 
 import static com.hexin.hxdada.service.impl.UserServiceImpl.SALT;
 

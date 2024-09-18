@@ -1,9 +1,10 @@
 package com.hexin.hxdada.model.enums;
 
+import org.apache.commons.lang3.ObjectUtils;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.ObjectUtils;
 
 /**
  * 文件上传业务类型枚举
@@ -12,7 +13,9 @@ import org.apache.commons.lang3.ObjectUtils;
  */
 public enum FileUploadBizEnum {
 
-    USER_AVATAR("用户头像", "user_avatar");
+    USER_AVATAR("用户头像", "user_avatar"),
+    APP_ICON("应用图标", "app_icon"),
+    RESULT_PICTURE("结果图标", "result_picture");
 
     private final String text;
 

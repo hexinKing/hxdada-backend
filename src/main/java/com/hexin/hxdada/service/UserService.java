@@ -6,9 +6,10 @@ import com.hexin.hxdada.model.dto.user.UserQueryRequest;
 import com.hexin.hxdada.model.entity.User;
 import com.hexin.hxdada.model.vo.LoginUserVO;
 import com.hexin.hxdada.model.vo.UserVO;
-import java.util.List;
-import javax.servlet.http.HttpServletRequest;
 import me.chanjar.weixin.common.bean.WxOAuth2UserInfo;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * 用户服务
