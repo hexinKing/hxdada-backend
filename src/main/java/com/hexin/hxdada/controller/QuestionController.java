@@ -1,6 +1,7 @@
 package com.hexin.hxdada.controller;
 
 import cn.hutool.json.JSONUtil;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hexin.hxdada.annotation.AuthCheck;
 import com.hexin.hxdada.common.BaseResponse;
@@ -14,9 +15,12 @@ import com.hexin.hxdada.model.dto.question.QuestionAddRequest;
 import com.hexin.hxdada.model.dto.question.QuestionEditRequest;
 import com.hexin.hxdada.model.dto.question.QuestionQueryRequest;
 import com.hexin.hxdada.model.dto.question.QuestionUpdateRequest;
+import com.hexin.hxdada.model.entity.App;
 import com.hexin.hxdada.model.entity.Question;
 import com.hexin.hxdada.model.entity.User;
+import com.hexin.hxdada.model.enums.ReviewStatusEnum;
 import com.hexin.hxdada.model.vo.QuestionVO;
+import com.hexin.hxdada.service.AppService;
 import com.hexin.hxdada.service.QuestionService;
 import com.hexin.hxdada.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -28,8 +32,6 @@ import javax.servlet.http.HttpServletRequest;
 
 /**
  * 题目接口
- *
- *
  */
 @RestController
 @RequestMapping("/question")
@@ -41,6 +43,9 @@ public class QuestionController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private AppService appService;
 
     // region 增删改查
 
@@ -60,6 +65,17 @@ public class QuestionController {
         question.setQuestionContent(JSONUtil.toJsonStr(questionAddRequest.getQuestionContentDTO()));
         // 数据校验
         questionService.validQuestion(question, true);
+        // 校验审核状态
+        App app = appService.getById(question.getAppId());
+        Integer reviewStatus = app.getReviewStatus();
+        ThrowUtils.throwIf(reviewStatus != ReviewStatusEnum.PASS.getValue(), ErrorCode.NO_AUTH_ERROR);
+        // 校验接受的appId对应的app应用是否已存在题目，一个应用只能创建一个题目
+        Question questionOne = questionService.getOne(
+                Wrappers.lambdaQuery(Question.class).eq(Question::getAppId, question.getAppId())
+        );
+        if (questionOne != null) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "抱歉！一个应用只能创建一个题目");
+        }
         // 填充默认值
         User loginUser = userService.getLoginUser(request);
         question.setUserId(loginUser.getId());

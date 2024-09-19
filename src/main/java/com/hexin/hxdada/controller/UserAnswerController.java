@@ -14,9 +14,12 @@ import com.hexin.hxdada.model.dto.useranswer.UserAnswerAddRequest;
 import com.hexin.hxdada.model.dto.useranswer.UserAnswerEditRequest;
 import com.hexin.hxdada.model.dto.useranswer.UserAnswerQueryRequest;
 import com.hexin.hxdada.model.dto.useranswer.UserAnswerUpdateRequest;
+import com.hexin.hxdada.model.entity.App;
 import com.hexin.hxdada.model.entity.User;
 import com.hexin.hxdada.model.entity.UserAnswer;
 import com.hexin.hxdada.model.vo.UserAnswerVO;
+import com.hexin.hxdada.scoring.ScoringStrategyExecutor;
+import com.hexin.hxdada.service.AppService;
 import com.hexin.hxdada.service.UserAnswerService;
 import com.hexin.hxdada.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -38,9 +41,12 @@ public class UserAnswerController {
 
     @Resource
     private UserAnswerService userAnswerService;
-
     @Resource
     private UserService userService;
+    @Resource
+    private ScoringStrategyExecutor scoringStrategyExecutor;
+    @Resource
+    private AppService appService;
 
     // region 增删改查
 
@@ -66,6 +72,17 @@ public class UserAnswerController {
         // 写入数据库
         boolean result = userAnswerService.save(userAnswer);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 调用评分策略接口,计算得分更新数据库
+        Long appId = userAnswer.getAppId();
+        App app = appService.getById(appId);
+        try {
+            UserAnswer userAnswerRequest = scoringStrategyExecutor.doScore(userAnswerAddRequest.getChoices(), app);
+            // 更新数据库
+            userAnswerRequest.setId(userAnswer.getId());
+            userAnswerService.updateById(userAnswerRequest);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "评分失败");
+        }
         // 返回新写入的数据 id
         long newUserAnswerId = userAnswer.getId();
         return ResultUtils.success(newUserAnswerId);

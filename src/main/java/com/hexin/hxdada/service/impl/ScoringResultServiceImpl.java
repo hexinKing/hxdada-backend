@@ -56,8 +56,6 @@ public class ScoringResultServiceImpl extends ServiceImpl<ScoringResultMapper, S
         // 从对象中取值
         String resultName = scoringResult.getResultName();
         String resultDesc = scoringResult.getResultDesc();
-        String resultProp = scoringResult.getResultProp();
-        Integer resultScoreRange = scoringResult.getResultScoreRange();
         Long appId = scoringResult.getAppId();
 
         // 创建数据时，参数不能为空
@@ -65,7 +63,6 @@ public class ScoringResultServiceImpl extends ServiceImpl<ScoringResultMapper, S
             // 补充校验规则
             ThrowUtils.throwIf(StringUtils.isBlank(resultName), ErrorCode.PARAMS_ERROR,"评分结果名称不能为空");
             ThrowUtils.throwIf(StringUtils.isBlank(resultDesc), ErrorCode.PARAMS_ERROR,"评分结果描述不能为空");
-            ThrowUtils.throwIf(StringUtils.isBlank(resultProp), ErrorCode.PARAMS_ERROR,"评分属性集合不能为空");
             ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "appId 非法");
         }
         // 修改数据时，有参数则校验
@@ -75,9 +72,6 @@ public class ScoringResultServiceImpl extends ServiceImpl<ScoringResultMapper, S
         }
         if (StringUtils.isNotBlank(resultDesc)) {
             ThrowUtils.throwIf(resultName.length() > 500, ErrorCode.PARAMS_ERROR, "评分结果描述过长");
-        }
-        if (resultScoreRange!=null) {
-            ThrowUtils.throwIf(resultScoreRange < 0 || resultScoreRange > 100 , ErrorCode.PARAMS_ERROR, "评分结果范围超过0-100");
         }
         if (appId != null){
             App app = appService.getById(appId);

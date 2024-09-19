@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 应用类型枚举
+ * 评分策略枚举
  *
  */
 public enum ScoringStrategyEnum {

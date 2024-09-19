@@ -63,15 +63,12 @@ public class UserAnswerServiceImpl extends ServiceImpl<UserAnswerMapper, UserAns
         Long appId = userAnswer.getAppId();
         String choices = userAnswer.getChoices();
         Long resultId = userAnswer.getResultId();
-        Integer resultScore = userAnswer.getResultScore();
 
         // 创建数据时，参数不能为空
         if (add) {
             // 补充校验规则
             ThrowUtils.throwIf(StringUtils.isBlank(choices), ErrorCode.PARAMS_ERROR, "答题选项不能为空");
             ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "appId 非法");
-            ThrowUtils.throwIf(resultId == null || resultId <= 0, ErrorCode.PARAMS_ERROR, "resultId 非法");
-            ThrowUtils.throwIf(resultScore == null || resultScore <= 0, ErrorCode.PARAMS_ERROR, "用户答题得分异常");
         }
         // 修改数据时，有参数则校验
         // 补充校验规则
