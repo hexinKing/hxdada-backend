@@ -2,8 +2,8 @@
 基于 Spring Boot + Redis + ChatGLM + RxJava + SSE +MyBatis-Plus 等技术实现的 AI 智能答题应用平台。
 用户可以基于 AI 快速制作并发布答题应用，支持检索、分享、在线答题并基于 AI 得到回答总结；管理员可以集中管理和审核应用。
 
-项目网页前端地址：https://github.com/hexinKing/hxdada-frontend.git
-项目小程序前端地址：https://github.com/hexinKing/mbti-test-mini
+- 项目网页前端地址：https://github.com/hexinKing/hxdada-frontend.git
+- 项目小程序前端地址：https://github.com/hexinKing/mbti-test-mini
 
 ### 项目功能
 
