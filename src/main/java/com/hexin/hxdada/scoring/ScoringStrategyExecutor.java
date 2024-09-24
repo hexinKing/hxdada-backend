@@ -39,7 +39,7 @@ public class ScoringStrategyExecutor {
         for (ScoringStrategy strategy : scoringStrategyList) {
             // 检查一个类或方法是否具有特定的注解
             if (strategy.getClass().isAnnotationPresent(ScoringStrategyConfig.class)) {
-                // 获取注解
+                // 通过反射获取注解
                 ScoringStrategyConfig scoringStrategyConfig = strategy.getClass().getAnnotation(ScoringStrategyConfig.class);
                 // 比较注解中的值和传入的值是否相等,相等则执行相应的策略
                 if (scoringStrategyConfig.appType() == appType && scoringStrategyConfig.scoringStrategy() == appScoringStrategy) {

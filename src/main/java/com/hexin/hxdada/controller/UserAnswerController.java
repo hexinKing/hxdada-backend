@@ -76,6 +76,7 @@ public class UserAnswerController {
         Long appId = userAnswer.getAppId();
         App app = appService.getById(appId);
         try {
+            // 调用评分策略执行器
             UserAnswer userAnswerRequest = scoringStrategyExecutor.doScore(userAnswerAddRequest.getChoices(), app);
             // 更新数据库
             userAnswerRequest.setId(userAnswer.getId());

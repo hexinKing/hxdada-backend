@@ -1,5 +1,6 @@
 package com.hexin.hxdada.model.dto.question;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -15,6 +16,7 @@ public class QuestionAddRequest implements Serializable {
     /**
      * 题目内容（json格式）
      */
+    @JsonProperty("questionContent")
     private List<QuestionContentDTO> questionContentDTO;
 
     /**

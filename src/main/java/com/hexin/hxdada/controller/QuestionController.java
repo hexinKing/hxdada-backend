@@ -11,13 +11,12 @@ import com.hexin.hxdada.common.ResultUtils;
 import com.hexin.hxdada.constant.UserConstant;
 import com.hexin.hxdada.exception.BusinessException;
 import com.hexin.hxdada.exception.ThrowUtils;
-import com.hexin.hxdada.model.dto.question.QuestionAddRequest;
-import com.hexin.hxdada.model.dto.question.QuestionEditRequest;
-import com.hexin.hxdada.model.dto.question.QuestionQueryRequest;
-import com.hexin.hxdada.model.dto.question.QuestionUpdateRequest;
+import com.hexin.hxdada.manager.AIManager;
+import com.hexin.hxdada.model.dto.question.*;
 import com.hexin.hxdada.model.entity.App;
 import com.hexin.hxdada.model.entity.Question;
 import com.hexin.hxdada.model.entity.User;
+import com.hexin.hxdada.model.enums.AppTypeEnum;
 import com.hexin.hxdada.model.enums.ReviewStatusEnum;
 import com.hexin.hxdada.model.vo.QuestionVO;
 import com.hexin.hxdada.service.AppService;
@@ -29,6 +28,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * 题目接口
@@ -46,6 +46,10 @@ public class QuestionController {
 
     @Resource
     private AppService appService;
+
+    @Resource
+    private AIManager aiManager;
+
 
     // region 增删改查
 
@@ -255,4 +259,161 @@ public class QuestionController {
     }
 
     // endregion
+
+    // AI创建题目
+
+    public static final String SYSTEM_MESSAGE = "# Role: 题目生成专家\n" +
+            "\n" +
+            "## Goals\n" +
+            "- 你是一位严谨的出题专家，我会给你一些信息让你去生成题目\n" +
+            "\n" +
+            "## message\n" +
+            "-应用名称，\n" +
+            "-【【【应用描述】】】，\n" +
+            "-应用类别，\n" +
+            "-要生成的题目数，\n" +
+            "-每个题目的选项数\n" +
+            "\n" +
+            "## Constrains\n" +
+            "- 必须按照我给你的信息要求去生成题目。\n" +
+            "- 生成的题目内容要尽可能的合情合理且有逻辑。\n" +
+            "- 题目类型包含测评类和得分类，如果用户输入的是测评类则去除字段\"score\"且不生成相关内容，同理如果是得分类则去除字段\"value\"且不生成相关内容\n" +
+            "- 当生成得分类题目时，生成的题目选项为单选类型，只能有一个正确答案，且正确答案得1分，错误答案得0分\n" +
+            "\n" +
+            "## Skills\n" +
+            "- 专业的题目出题能力\n" +
+            "- 理解并解析题目内容\n" +
+            "- 提供准确的字段和内容\n" +
+            "\n" +
+            "## Example\n" +
+            "[\n" +
+            "    {\n" +
+            "        \"options\": [\n" +
+            "            {\n" +
+            "                \"result\": \"I\",\n" +
+            "                \"value\": \"独自工作\",\n" +
+            "                \"score\": 1,\n" +
+            "                \"key\": \"A\"\n" +
+            "            },\n" +
+            "            {\n" +
+            "                \"result\": \"E\",\n" +
+            "                \"value\": \"与他人合作\",\n" +
+            "                \"score\": 0,\n" +
+            "                \"key\": \"B\"\n" +
+            "            }\n" +
+            "        ],\n" +
+            "        \"title\": \"你通常更喜欢\"\n" +
+            "    }\n" +
+            "]\n" +
+            "\n" +
+            "\n" +
+            "## Workflow\n" +
+            "1. 要求：题目和选项尽可能地短，题目不要包含序号，每题的选项数以我提供的为主，题目不能重复\n" +
+            "2. 严格按照我给你的 json 格式输出题目和选项 title 是题目，options 是选项，每个选项的 key 按照英文字母序（比如 A、B、C、D）以此类推，value 是选项内容，score是选项对应的得分\n" +
+            "3. 检查题目是否包含序号，若包含序号则去除序号\n" +
+            "4. 返回的题目列表格式必须为 JSON 数组";
+
+    /**
+     * 生成题目的用户消息
+     *
+     * @param app
+     * @param questionNumber
+     * @param optionNumber
+     * @return
+     */
+    private String getGenerateQuestionUserMessage(App app, int questionNumber, int optionNumber) {
+        StringBuilder userMessage = new StringBuilder();
+        userMessage.append(app.getAppName()).append("\n");
+        userMessage.append(app.getAppDesc()).append("\n");
+        userMessage.append(AppTypeEnum.getEnumByValue(app.getAppType()).getText() ).append("\n");
+        userMessage.append(questionNumber).append("\n");
+        userMessage.append(optionNumber);
+        return userMessage.toString();
+    }
+
+    @PostMapping("/ai_generate")
+    public BaseResponse<List<QuestionContentDTO>> AIGenerationQuestion(@RequestBody AIGenerationQuestionRequest aiGenerationQuestionRequest){
+        // 获取数据、校验
+        ThrowUtils.throwIf(aiGenerationQuestionRequest == null, ErrorCode.PARAMS_ERROR);
+        Long appId = aiGenerationQuestionRequest.getAppId();
+        Integer questionNumber = aiGenerationQuestionRequest.getQuestionNumber();
+        ThrowUtils.throwIf(questionNumber > 20, ErrorCode.NOT_FOUND_ERROR,"抱歉！不可以一次性生成超过20道题目");
+        Integer optionNumber = aiGenerationQuestionRequest.getOptionNumber();
+        ThrowUtils.throwIf(optionNumber > 4, ErrorCode.NOT_FOUND_ERROR,"抱歉！不可以一次性生成超过4道选项");
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
+        // 获取UserMessage
+        String UserMessage = getGenerateQuestionUserMessage(app, questionNumber, optionNumber);
+        // AI生成题目
+        String doSyncStableRequest = aiManager.doSyncStableRequest(SYSTEM_MESSAGE, UserMessage);
+        // 截取需要的 JSON 信息
+        int start = doSyncStableRequest.indexOf("[");
+        int end = doSyncStableRequest.lastIndexOf("]");
+        String json = doSyncStableRequest.substring(start, end + 1);
+        // 封装数据返回结果
+        List<QuestionContentDTO> questionContentDTOS = JSONUtil.toList(json, QuestionContentDTO.class);
+        return ResultUtils.success(questionContentDTOS);
+    }
+
+//    /**
+//     * 将历史生成的题目标题关联到上下文中,让AI排除掉重复题目的生成
+//     * @param number
+//     * @return
+//     */
+//    private String AICreateTitle(int number) {
+//        String appAiSysMessageConfig = "系统提示词";
+//        String appAiUserMessageConfig = "用户提示词";
+//
+//        //经过测试，需要每 20 道题一组，ChatGLM 拒绝一次性输出大量题目
+//        List<ChatMessage> assistantChatMessageList = new ArrayList<>();
+//        while (number >= 10) {
+//            invokeAiLoop(number, appAiSysMessageConfig, appAiUserMessageConfig, assistantChatMessageList);
+//            number = number - 10;
+//        }
+//        if (number > 0) {
+//            invokeAiLoop(number, appAiSysMessageConfig, appAiUserMessageConfig, assistantChatMessageList);
+//        }
+//        //将结果合并成一个 List 返回
+//        JSONArray result = new JSONArray();
+//        for (ChatMessage message : assistantChatMessageList) {
+//            //将每个消息的内容解析为JSONArray，将JSON字符串解析成JSON数组：。
+//            JSONArray jsonArray = JSONArray.parseArray(String.valueOf(message.getContent()));
+//            //将解析后的JSONArray添加到结果列表result中
+//            result.addAll(jsonArray);
+//        }
+//        return JSON.toJSONString(result);
+//    }
+
+//    /**
+//     * 将历史生成的题目标题关联到上下文中
+//     * @param number
+//     * @param appAiSysMessageConfig
+//     * @param appAiUserMessageConfig
+//     * @param assistantChatMessages
+//     */
+//    private void invokeAiLoop(int number, String appAiSysMessageConfig, String appAiUserMessageConfig, List<ChatMessage> assistantChatMessages) {
+//        // 每次需要重建request，因为一次调用后sokcet通道已经被关闭，复用老的 request 会复用老链接会报错
+//        //创建一个ChatCompletionRequest对象，使用ChatGLMUtil的buildSyncUnStableRequest方法构建请求。这里使用Math.min确保不会超过10个题目
+//        ChatCompletionRequest chatCompletionRequest = ChatGLMUtil.buildSyncUnStableRequest(appAiSysMessageConfig, String.format(appAiUserMessageConfig, Math.min(number, 10), 2));
+//        //将assistantChatMessages列表中的所有消息添加到请求的消息列表中。
+//        chatCompletionRequest.getMessages().addAll(assistantChatMessages);
+//        //调用client的invokeModelApi方法，发送请求并接收响应
+//        ModelApiResponse invokeModelApiResp = client.invokeModelApi(chatCompletionRequest);
+//        String s = invokeModelApiResp.getData().getChoices().get(0).getMessage().getContent().toString();
+//
+//        int start = s.indexOf("[");
+//        int end = s.lastIndexOf("]");
+//        String content = s.substring(start, end + 1);
+//
+//        //保存上下文
+//        // 创建一个新的ChatMessage对象，设置角色为助手（ASSISTANT），内容为提取的字符串，并将其添加到消息列表中。
+//        assistantChatMessages.add(new ChatMessage(ChatMessageRole.ASSISTANT.value(), content));
+//    }
+
+
+
+    // endregion
+
+
+
 }

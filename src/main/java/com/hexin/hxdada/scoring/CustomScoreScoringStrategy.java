@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
+ * 自定义
  * 得分类应用评分策略
  */
 @ScoringStrategyConfig(appType = 0 , scoringStrategy = 0)

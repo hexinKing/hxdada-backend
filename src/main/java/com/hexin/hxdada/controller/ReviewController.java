@@ -35,7 +35,7 @@ public class ReviewController {
     private UserService userService;
 
     /**
-     * 应用审核
+     * App应用审核
      * @param reviewRequest
      * @param request
      * @return
@@ -44,15 +44,15 @@ public class ReviewController {
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public BaseResponse<Boolean> doAppReview(@RequestBody ReviewRequest reviewRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(reviewRequest == null, ErrorCode.PARAMS_ERROR);
-        Long id = reviewRequest.getAppid();
+        Long Appid = reviewRequest.getId();
         Integer reviewStatus = reviewRequest.getReviewStatus();
         // 校验
         ReviewStatusEnum reviewStatusEnum = ReviewStatusEnum.getEnumByValue(reviewStatus);
-        if (id == null || reviewStatusEnum == null) {
+        if (Appid == null || reviewStatusEnum == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 判断是否存在
-        App oldApp = appService.getById(id);
+        App oldApp = appService.getById(Appid);
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
         // 已是该状态
         if (oldApp.getReviewStatus().equals(reviewStatus)) {
@@ -61,7 +61,7 @@ public class ReviewController {
         // 更新审核状态
         User loginUser = userService.getLoginUser(request);
         App app = new App();
-        app.setId(id);
+        app.setId(Appid);
         app.setReviewStatus(reviewStatus);
         app.setReviewerId(loginUser.getId());
         app.setReviewMessage(reviewRequest.getReviewMessage());

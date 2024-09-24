@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * 自定义
  * 测评类应用评分策略
  */
 @ScoringStrategyConfig(appType = 1 , scoringStrategy = 0)

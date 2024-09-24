@@ -13,7 +13,7 @@ public class ReviewRequest implements Serializable {
     /**
      * Appid
      */
-    private Long Appid;
+    private Long id;
 
     /**
      * 状态：0-待审核, 1-通过, 2-拒绝

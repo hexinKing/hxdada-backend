@@ -82,13 +82,12 @@ wx:
     appId: xxx
     appSecret: xxx
 # 对象存储
-# todo 需替换配置
 cos:
   client:
-    accessKey: xxx
-    secretKey: xxx
-    region: xxx
-    bucket: xxx
+    accessKey: XXX
+    secretKey: XXX
+    region: XXX
+    bucket: XXX
 # 接口文档配置
 knife4j:
   enable: true
@@ -100,3 +99,9 @@ knife4j:
         api-rule: package
         api-rule-resources:
           - com.hexin.hxdada.controller
+# 智谱AI配置
+ai:
+  apiKey: XXX.XXX
+# AI生成策略，统一ai照片
+aiPicture: https://hexin-1326893985.cos.ap-guangzhou.myqcloud.com/result_picture%2Fa109874e-92f3-41d0-b635-af766b07763c.jfif
+
