@@ -1,5 +1,6 @@
 package com.hexin.hxdada.controller;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -22,13 +23,19 @@ import com.hexin.hxdada.model.vo.QuestionVO;
 import com.hexin.hxdada.service.AppService;
 import com.hexin.hxdada.service.QuestionService;
 import com.hexin.hxdada.service.UserService;
+import com.zhipu.oapi.service.v4.model.ModelData;
+import io.reactivex.Flowable;
+import io.reactivex.schedulers.Schedulers;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 题目接口
@@ -260,7 +267,7 @@ public class QuestionController {
 
     // endregion
 
-    // AI创建题目
+    // region AI创建题目
 
     public static final String SYSTEM_MESSAGE = "# Role: 题目生成专家\n" +
             "\n" +
@@ -272,10 +279,10 @@ public class QuestionController {
             "-【【【应用描述】】】，\n" +
             "-应用类别，\n" +
             "-要生成的题目数，\n" +
-            "-每个题目的选项数\n" +
+            "-每道题目的选项数\n" +
             "\n" +
             "## Constrains\n" +
-            "- 必须按照我给你的信息要求去生成题目。\n" +
+            "- 必须按照我给你的信息要求去生成题目,生成的题目数量和每道题目的选项数量必须和用户给的参数保持一致，不能超出限制。\n" +
             "- 生成的题目内容要尽可能的合情合理且有逻辑。\n" +
             "- 题目类型包含测评类和得分类，如果用户输入的是测评类则去除字段\"score\"且不生成相关内容，同理如果是得分类则去除字段\"value\"且不生成相关内容\n" +
             "- 当生成得分类题目时，生成的题目选项为单选类型，只能有一个正确答案，且正确答案得1分，错误答案得0分\n" +
@@ -325,21 +332,27 @@ public class QuestionController {
         StringBuilder userMessage = new StringBuilder();
         userMessage.append(app.getAppName()).append("\n");
         userMessage.append(app.getAppDesc()).append("\n");
-        userMessage.append(AppTypeEnum.getEnumByValue(app.getAppType()).getText() ).append("\n");
+        userMessage.append(AppTypeEnum.getEnumByValue(app.getAppType()).getText()).append("\n");
         userMessage.append(questionNumber).append("\n");
         userMessage.append(optionNumber);
         return userMessage.toString();
     }
 
+    /**
+     * AI生成题目
+     *
+     * @param aiGenerationQuestionRequest
+     * @return
+     */
     @PostMapping("/ai_generate")
-    public BaseResponse<List<QuestionContentDTO>> AIGenerationQuestion(@RequestBody AIGenerationQuestionRequest aiGenerationQuestionRequest){
+    public BaseResponse<List<QuestionContentDTO>> aiGenerateQuestion(@RequestBody AIGenerationQuestionRequest aiGenerationQuestionRequest) {
         // 获取数据、校验
         ThrowUtils.throwIf(aiGenerationQuestionRequest == null, ErrorCode.PARAMS_ERROR);
         Long appId = aiGenerationQuestionRequest.getAppId();
         Integer questionNumber = aiGenerationQuestionRequest.getQuestionNumber();
-        ThrowUtils.throwIf(questionNumber > 20, ErrorCode.NOT_FOUND_ERROR,"抱歉！不可以一次性生成超过20道题目");
+        ThrowUtils.throwIf(questionNumber > 20, ErrorCode.NOT_FOUND_ERROR, "抱歉！不可以一次性生成超过20道题目");
         Integer optionNumber = aiGenerationQuestionRequest.getOptionNumber();
-        ThrowUtils.throwIf(optionNumber > 4, ErrorCode.NOT_FOUND_ERROR,"抱歉！不可以一次性生成超过4道选项");
+        ThrowUtils.throwIf(optionNumber > 4, ErrorCode.NOT_FOUND_ERROR, "抱歉！不可以一次性生成超过4道选项");
         App app = appService.getById(appId);
         ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
         // 获取UserMessage
@@ -355,6 +368,83 @@ public class QuestionController {
         return ResultUtils.success(questionContentDTOS);
     }
 
+
+    /**
+     * AI生成题目（SSE 效率更高，用户体验更好）
+     *
+     * @param aiGenerationQuestionRequest
+     * @return
+     */
+    @GetMapping("/ai_generate/sse")
+    public SseEmitter aiGenerateQuestionSSE(AIGenerationQuestionRequest aiGenerationQuestionRequest) {
+        // 获取数据、校验
+        ThrowUtils.throwIf(aiGenerationQuestionRequest == null, ErrorCode.PARAMS_ERROR);
+        Long appId = aiGenerationQuestionRequest.getAppId();
+        Integer questionNumber = aiGenerationQuestionRequest.getQuestionNumber();
+        ThrowUtils.throwIf(questionNumber > 20, ErrorCode.NOT_FOUND_ERROR, "抱歉！不可以一次性生成超过20道题目");
+        Integer optionNumber = aiGenerationQuestionRequest.getOptionNumber();
+        ThrowUtils.throwIf(optionNumber > 4, ErrorCode.NOT_FOUND_ERROR, "抱歉！不可以一次性生成超过4道选项");
+        App app = appService.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR);
+        // 获取UserMessage
+        String UserMessage = getGenerateQuestionUserMessage(app, questionNumber, optionNumber);
+        // 创建SSE连接对象,0表示不设置超时时间
+        SseEmitter sseEmitter = new SseEmitter(0L);
+        // AI生成题目（流式请求）
+        Flowable<ModelData> modelDataFlowable = aiManager.doStreamSyncStableRequest(SYSTEM_MESSAGE, UserMessage);
+        // AtomicInteger它提供了一种线程安全的方式来操作整数，其内部实现使用了原子操作，因此可以保证线程安全。用来统计当前已处理的字符数。
+        AtomicInteger atomicInteger = new AtomicInteger(0);
+        // 创建一个 StringBuilder 对象，用来保存截取到的 JSON 信息
+        StringBuilder stringBuilder = new StringBuilder();
+        // 使用RxJava订阅数据流，将数据流进行处理
+        modelDataFlowable
+                .subscribeOn(Schedulers.io()) // 指定创建流的线程池
+                // 先将数据流进行过滤,去除无用的字符
+                .map(chunk -> chunk.getChoices().get(0).getDelta().getContent())
+                .map(message -> message.replaceAll("\\s", ""))
+                .filter(StrUtil::isNotBlank)
+                // 讲数据转化为一个一个的字符流
+                .flatMap(message -> {
+                    List<Character> characterList = new ArrayList<>();
+                    for (char c : message.toCharArray()) {
+                        characterList.add(c);
+                    }
+                    // fromIterable用于将一个可迭代的对象（如List、Set等）转换为一个Flowable对象
+                    return Flowable.fromIterable(characterList);
+                })
+                // 拿取每一个字符流，截取需要的 JSON 信息，并封装数据返回结果给前段,当atomicInteger=0时表示已经截取到了需要的数据
+                .doOnNext(c -> {
+                    {
+                        if (c == '{') {
+                            // 遇到 [ 则加一
+                            atomicInteger.addAndGet(1);
+                        }
+                        if (atomicInteger.get() > 0) {
+                            //添加到 StringBuilder 中
+                            stringBuilder.append(c);
+                        }
+                        if (c == '}') {
+                            // 遇到 ] 则减一
+                            atomicInteger.addAndGet(-1);
+                            // 累计的数据满足要求时，sse需要压缩为JSON格式，并推送至前端，并清空 StringBuilder
+                            if (atomicInteger.get() == 0) {
+                                sseEmitter.send(JSONUtil.toJsonStr(stringBuilder.toString()));
+                                // 清空 StringBuilder
+                                stringBuilder.setLength(0);
+                            }
+                        }
+                    }
+                })
+                .doOnError(error -> log.error("AI生成题目失败", error))
+                // sseEmitter::complete 表示数据流处理完成
+                .doOnComplete(sseEmitter::complete).subscribe();
+        return sseEmitter;
+    }
+
+    // endregion
+
+
+    // region 功能扩展（将历史生成的题目标题关联到上下文中,让AI排除掉重复题目的生成） 未实现
 //    /**
 //     * 将历史生成的题目标题关联到上下文中,让AI排除掉重复题目的生成
 //     * @param number
@@ -410,10 +500,6 @@ public class QuestionController {
 //        assistantChatMessages.add(new ChatMessage(ChatMessageRole.ASSISTANT.value(), content));
 //    }
 
-
-
     // endregion
-
-
 
 }

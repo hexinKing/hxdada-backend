@@ -78,7 +78,7 @@
 ![核心业务流程图](./readmeimages/核心业务流程图.png)
 
 ## 2、时序图
-![核心业务流程图](./readmeimages/时序图.png)
+![时序图](./readmeimages/时序图.png)
 
 ## 3、架构设计图
-![核心业务流程图](./readmeimages/架构设计图.png)
+![架构设计图](./readmeimages/架构设计图.png)
