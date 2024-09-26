@@ -80,6 +80,8 @@ public class UserAnswerController {
             UserAnswer userAnswerRequest = scoringStrategyExecutor.doScore(userAnswerAddRequest.getChoices(), app);
             // 更新数据库
             userAnswerRequest.setId(userAnswer.getId());
+            // user_answer分表后不能再更新分表字段
+            userAnswerRequest.setAppId(null);
             userAnswerService.updateById(userAnswerRequest);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "评分失败");
