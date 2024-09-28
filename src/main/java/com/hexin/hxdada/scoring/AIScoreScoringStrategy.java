@@ -46,7 +46,7 @@ public class AIScoreScoringStrategy implements ScoringStrategy {
     private String aiPicture;
 
     // redis缓存key,业务前缀防止冲突
-    public static final String AI_TEST_SCORING_STRATEGY_KEY = "AI_TEST_SCORING_STRATEGY_KEY";
+    public static final String AI_TEST_SCORING_STRATEGY_KEY = "AI_SCORE_SCORING_STRATEGY_KEY";
 
 
     /**
@@ -87,8 +87,9 @@ public class AIScoreScoringStrategy implements ScoringStrategy {
             "## Constrains\n" +
             "- 必须按照我给你的信息要求去分析题目。\n" +
             "- 分析的内容要尽可能的合情合理且有逻辑。\n" +
-            "- 能够识别用户回答对应的题目是否正确、在用户答案中只要有一个错误的地方则为答案错误\n" +
-            "- 严格按照我给你的评分标准去做评分结论，假设正确答案得1分，错误答案得0分并统计正常答案的占比，只有占比>=95%才表示优秀、占比>=80%才表示良好、占比>=60%才表示及格、占比<60%才表示不及格，必须严格按照以上的我给出的占比范围去做评价描述\n" +
+            "- 能够识别用户回答对应的题目是否正确,且用户答案中只要有一个错误的地方则视为答案错误。\n" +
+            "- 严格按照我给你的评分标准范围去做评价名称（resultName），需要统计正常答案的占比，只有占比>=95%才显示优秀、占比>=80%才显示良好、占比>=60%才显示及格、占比<60%才显示不及格。\n" +
+            "- 将用户输入的正确答案占比转化为对应的百分制整数得分。\n" +
             "\n" +
             "## Skills\n" +
             "- 专业的判题分析能力\n" +
@@ -97,14 +98,16 @@ public class AIScoreScoringStrategy implements ScoringStrategy {
             "\n" +
             "## Example\n" +
             "{\n" +
+            "  \"resultScore\": 88,\n" +
             "  \"resultName\": \"良好\",\n" +
-            "  \"resultDesc\": \"恭喜您！您的测试结果显示正确答案占比达到或超过80%。这表明您在该分类知识领域表现良好，掌握了大部分相关内容。继续保持这种优秀的学习态度，相信您在未来的学习中会取得更大的进步！\"\n" +
+            "  \"resultDesc\": \"恭喜您，通过了测试！这分数表明您在该分类知识领域表现良好，掌握了大部分相关内容。继续保持这种优秀的学习态度，相信您在未来的学习中会取得更大的进步！\"\n" +
             "}\n" +
             "\n" +
             "## Workflow\n" +
-            "1. 要求：需要给出一个明确的评价结果，包括评价名称（尽量简短）和评价描述（尽量详细，为错误答案做改正并解析，在 400 字以内）\n" +
-            "2. 严格按照我给你的 json 格式输出评价名称（resultName）和评价描述（resultDesc）\n" +
-            "3. 返回格式必须为 JSON 对象";
+            "1. 要求：需要给出一个明确的评价结果，包括评价名称（尽量简短）和评价描述（尽量详细，不要显示用户提交答案的正确百分比，不要给评论描述加换行符和序号，并且为错误答案做改正并解析，在 400 字以内）、题目得分（使用整数表示且尽量准确）\n" +
+            "2. 严格按照我给你的 json 格式输出评价名称（resultName）和评价描述（resultDesc）、题目得分（resultScore）\n" +
+            "3. 检查题目是否包含序号，若包含序号则去除序号\n" +
+            "4. 返回格式必须为 JSON 对象\n";
 
     /**
      * 生成题目的用户消息
@@ -118,31 +121,6 @@ public class AIScoreScoringStrategy implements ScoringStrategy {
         StringBuilder userMessage = new StringBuilder();
         userMessage.append(app.getAppName()).append("\n");
         userMessage.append(app.getAppDesc()).append("\n");
-//        // 获取题目标题和用户答案
-//        List<QusetionAnswerDTO> qusetionAnswerDTOList = new ArrayList<>();
-//        for (int i = 0; i < questionContentDTOList.size(); i++) {
-//            QusetionAnswerDTO qusetionAnswerDTO = new QusetionAnswerDTO();
-//            qusetionAnswerDTO.setUserAnswer(choices.get(i));
-//            qusetionAnswerDTO.setTitle(questionContentDTOList.get(i).getTitle());
-//            qusetionAnswerDTOList.add(qusetionAnswerDTO);
-//        }
-//        // 需要将用户的答案（A、B、B）转化为选项对应的内容
-//        for (QuestionContentDTO questionContentDTO : questionContentDTOList) {
-//            // 遍历用户答案列表
-//            for (int i = 0; i < qusetionAnswerDTOList.size(); i++) {
-//                // 遍历题目中的选项
-//                for (QuestionContentDTO.Option option : questionContentDTO.getOptions()) {
-//                    // 如果答案和选项的key匹配
-//                    if (option.getKey().equals(qusetionAnswerDTOList.get(i).getUserAnswer())) {
-//                        // 获取选项的value属性
-//                        String value = option.getValue();
-//                        qusetionAnswerDTOList.get(i).setUserAnswer(value);
-//                    }
-//                }
-//            }
-//        }
-
-
         // 代码优化  获取题目标题和用户答案
         List<QusetionAnswerDTO> qusetionAnswerDTOList = new ArrayList<>();
         IntStream.range(0, questionContentDTOList.size())

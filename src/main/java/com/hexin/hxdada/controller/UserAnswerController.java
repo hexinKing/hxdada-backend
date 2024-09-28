@@ -1,5 +1,6 @@
 package com.hexin.hxdada.controller;
 
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hexin.hxdada.annotation.AuthCheck;
@@ -24,6 +25,7 @@ import com.hexin.hxdada.service.UserAnswerService;
 import com.hexin.hxdada.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
@@ -48,6 +50,16 @@ public class UserAnswerController {
     @Resource
     private AppService appService;
 
+
+    /**
+     * 生成用户答题记录 唯一id、实现幂等设计
+     * @return
+     */
+    @GetMapping("/generate/id")
+    public BaseResponse<Long> generateUserAnswerId() {
+        return ResultUtils.success(IdUtil.getSnowflakeNextId());
+    }
+
     // region 增删改查
 
     /**
@@ -69,9 +81,16 @@ public class UserAnswerController {
         // 填充默认值
         User loginUser = userService.getLoginUser(request);
         userAnswer.setUserId(loginUser.getId());
+        // 利用数据库唯一索引的特性，防止重复提交，保证幂等性
+        userAnswer.setId(userAnswerAddRequest.getId());
         // 写入数据库
-        boolean result = userAnswerService.save(userAnswer);
-        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        try {
+            boolean result = userAnswerService.save(userAnswer);
+            ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        }catch (DuplicateKeyException e){
+            // 重复提交，返回成功
+        }
+
         // 调用评分策略接口,计算得分更新数据库
         Long appId = userAnswer.getAppId();
         App app = appService.getById(appId);
@@ -259,4 +278,7 @@ public class UserAnswerController {
     }
 
     // endregion
+
+
+
 }

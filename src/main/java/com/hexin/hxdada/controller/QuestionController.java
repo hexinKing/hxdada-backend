@@ -25,6 +25,7 @@ import com.hexin.hxdada.service.QuestionService;
 import com.hexin.hxdada.service.UserService;
 import com.zhipu.oapi.service.v4.model.ModelData;
 import io.reactivex.Flowable;
+import io.reactivex.Scheduler;
 import io.reactivex.schedulers.Schedulers;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -56,6 +57,9 @@ public class QuestionController {
 
     @Resource
     private AIManager aiManager;
+
+    @Resource
+    private Scheduler vipScheduler;
 
 
     // region 增删改查
@@ -373,10 +377,11 @@ public class QuestionController {
      * AI生成题目（SSE 效率更高，用户体验更好）
      *
      * @param aiGenerationQuestionRequest
+     * @param request
      * @return
      */
     @GetMapping("/ai_generate/sse")
-    public SseEmitter aiGenerateQuestionSSE(AIGenerationQuestionRequest aiGenerationQuestionRequest) {
+    public SseEmitter aiGenerateQuestionSSE(AIGenerationQuestionRequest aiGenerationQuestionRequest, HttpServletRequest request) {
         // 获取数据、校验
         ThrowUtils.throwIf(aiGenerationQuestionRequest == null, ErrorCode.PARAMS_ERROR);
         Long appId = aiGenerationQuestionRequest.getAppId();
@@ -396,6 +401,15 @@ public class QuestionController {
         AtomicInteger atomicInteger = new AtomicInteger(0);
         // 创建一个 StringBuilder 对象，用来保存截取到的 JSON 信息
         StringBuilder stringBuilder = new StringBuilder();
+
+        // 获取登录用户
+        User loginUser = userService.getLoginUser(request);
+        // 普通用户使用默认全局线程池,VIP用户或者管理员使用VIP自定义线程池
+        Scheduler scheduler = Schedulers.io();
+        if ("admin".equals(loginUser.getUserRole())) {
+            scheduler = vipScheduler;
+        }
+
         // 使用RxJava订阅数据流，将数据流进行处理
         modelDataFlowable
                 .subscribeOn(Schedulers.io()) // 指定创建流的线程池

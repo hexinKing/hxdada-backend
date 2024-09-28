@@ -14,6 +14,11 @@ import java.util.List;
 public class UserAnswerAddRequest implements Serializable {
 
     /**
+     * 雪花算法唯一id
+     */
+    private Long id;
+
+    /**
      * 应用 id
      */
     private Long appId;
