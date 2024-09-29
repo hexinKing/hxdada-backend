@@ -15,6 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.annotation.Resource;
 import java.util.List;
 
+
+/**
+ * 应用数据统计接口
+ */
 @RestController
 @RequestMapping("/app/statistic")
 @Slf4j

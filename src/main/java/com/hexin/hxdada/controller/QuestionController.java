@@ -83,7 +83,7 @@ public class QuestionController {
         // 校验审核状态
         App app = appService.getById(question.getAppId());
         Integer reviewStatus = app.getReviewStatus();
-        ThrowUtils.throwIf(reviewStatus != ReviewStatusEnum.PASS.getValue(), ErrorCode.NO_AUTH_ERROR);
+        ThrowUtils.throwIf(reviewStatus != ReviewStatusEnum.PASS.getValue(), ErrorCode.NO_AUTH_ERROR,"抱歉！当前应用未通过审核，无法创建题目");
         // 校验接受的appId对应的app应用是否已存在题目，一个应用只能创建一个题目
         Question questionOne = questionService.getOne(
                 Wrappers.lambdaQuery(Question.class).eq(Question::getAppId, question.getAppId())

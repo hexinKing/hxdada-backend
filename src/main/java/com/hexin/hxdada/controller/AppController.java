@@ -1,5 +1,6 @@
 package com.hexin.hxdada.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hexin.hxdada.annotation.AuthCheck;
 import com.hexin.hxdada.common.BaseResponse;
@@ -14,9 +15,13 @@ import com.hexin.hxdada.model.dto.app.AppEditRequest;
 import com.hexin.hxdada.model.dto.app.AppQueryRequest;
 import com.hexin.hxdada.model.dto.app.AppUpdateRequest;
 import com.hexin.hxdada.model.entity.App;
+import com.hexin.hxdada.model.entity.Question;
+import com.hexin.hxdada.model.entity.ScoringResult;
 import com.hexin.hxdada.model.entity.User;
 import com.hexin.hxdada.model.vo.AppVO;
 import com.hexin.hxdada.service.AppService;
+import com.hexin.hxdada.service.QuestionService;
+import com.hexin.hxdada.service.ScoringResultService;
 import com.hexin.hxdada.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -24,6 +29,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * 应用接口
@@ -38,6 +44,12 @@ public class AppController {
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private QuestionService questionService;
+
+    @Resource
+    private ScoringResultService scoringResultService;
 
     // region 增删改查
 
@@ -91,6 +103,25 @@ public class AppController {
         // 操作数据库
         boolean result = appService.removeById(id);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        // 删除app应用信息的同时应该也删除该应用下的所有题目数据和评分结果数据
+        Question questionServiceOne = questionService.getOne(
+                new QueryWrapper<Question>()
+                        .eq("appId", id)
+        );
+        if (questionServiceOne != null ){
+            boolean questionResult = questionService.removeById(questionServiceOne);
+            ThrowUtils.throwIf(!questionResult, ErrorCode.OPERATION_ERROR);
+        }
+        // 删除评分结果数据
+        List<ScoringResult> scoringResultList = scoringResultService.list(
+                new QueryWrapper<ScoringResult>()
+                        .eq("appId", id)
+        );
+        if (scoringResultList != null || !scoringResultList.isEmpty()){
+            boolean scoringResultResult = scoringResultService.removeByIds(scoringResultList);
+            ThrowUtils.throwIf(!scoringResultResult, ErrorCode.OPERATION_ERROR);
+        }
+
         return ResultUtils.success(true);
     }
 
