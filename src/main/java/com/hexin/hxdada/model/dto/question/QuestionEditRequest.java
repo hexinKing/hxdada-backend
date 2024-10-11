@@ -21,7 +21,7 @@ public class QuestionEditRequest implements Serializable {
     /**
      * 题目内容（json格式）
      */
-    private List<QuestionContentDTO> questionContentDTO;
+    private List<QuestionContentDTO> questionContent;
 
     private static final long serialVersionUID = 1L;
 }

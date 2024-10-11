@@ -97,6 +97,7 @@ public class AIManager {
                 //置生成热力值，用于控制生成结果的随机性。
                 .temperature(temperature)
                 .invokeMethod(Constants.invokeMethod)
+                .maxTokens(10000)
                 //置请求的消息列表，用于提供上下文信息。
                 .messages(messages)
                 .build();
@@ -108,8 +109,6 @@ public class AIManager {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, e.getMessage());
         }
     }
-
-
 
 
     /**
@@ -133,7 +132,6 @@ public class AIManager {
     public Flowable<ModelData> doStreamSyncStableRequest(String systemMessage, String userMessage) {
         return doStreamRequest(systemMessage, userMessage, STABLE_TEMPERATURE);
     }
-
 
 
     /**
@@ -171,15 +169,13 @@ public class AIManager {
                 //置生成热力值，用于控制生成结果的随机性。
                 .temperature(temperature)
                 .invokeMethod(Constants.invokeMethod)
+                .maxTokens(10000)
                 //置请求的消息列表，用于提供上下文信息。
                 .messages(messages)
                 .build();
-            ModelApiResponse invokeModelApiResp = clientV4.invokeModelApi(chatCompletionRequest);
-            return invokeModelApiResp.getFlowable();
+        ModelApiResponse invokeModelApiResp = clientV4.invokeModelApi(chatCompletionRequest);
+        return invokeModelApiResp.getFlowable();
     }
-
-
-
 
 
 }

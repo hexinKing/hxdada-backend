@@ -245,13 +245,13 @@ public class QuestionController {
      */
     @PostMapping("/edit")
     public BaseResponse<Boolean> editQuestion(@RequestBody QuestionEditRequest questionEditRequest, HttpServletRequest request) {
-        if (questionEditRequest == null || questionEditRequest.getId() <= 0) {
+        if (questionEditRequest == null || questionEditRequest.getId() <= 0 ) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 在此处将实体类和 DTO 进行转换
         Question question = new Question();
         BeanUtils.copyProperties(questionEditRequest, question);
-        question.setQuestionContent(JSONUtil.toJsonStr(questionEditRequest.getQuestionContentDTO()));
+        question.setQuestionContent(JSONUtil.toJsonStr(questionEditRequest.getQuestionContent()));
         // 数据校验
         questionService.validQuestion(question, false);
         User loginUser = userService.getLoginUser(request);
@@ -286,7 +286,7 @@ public class QuestionController {
             "-每道题目的选项数\n" +
             "\n" +
             "## Constrains\n" +
-            "- 必须按照我给你的信息要求去生成题目,生成的题目数量和每道题目的选项数量必须和用户给的参数保持一致，不能超出限制。\n" +
+            "- 必须按照我给你的信息要求去生成题目,生成的题目数量和每道题目的选项数量必须和用户给的参数保持一致，不能超出限制。。\n" +
             "- 生成的题目内容要尽可能的合情合理且有逻辑。\n" +
             "- 题目类型包含测评类和得分类，如果用户输入的是测评类则去除字段\"score\"且不生成相关内容，同理如果是得分类则去除字段\"value\"且不生成相关内容\n" +
             "- 当生成得分类题目时，生成的题目选项为单选类型，只能有一个正确答案，且正确答案得1分，错误答案得0分\n" +
@@ -364,11 +364,19 @@ public class QuestionController {
         // AI生成题目
         String doSyncStableRequest = aiManager.doSyncStableRequest(SYSTEM_MESSAGE, UserMessage);
         // 截取需要的 JSON 信息
+        // 查找第一个左大括号的索引位置
         int start = doSyncStableRequest.indexOf("[");
+        // 查找最后一个右大括号的索引位置
         int end = doSyncStableRequest.lastIndexOf("]");
+        // 截取子字符串，结果将包含大括号
         String json = doSyncStableRequest.substring(start, end + 1);
         // 封装数据返回结果
-        List<QuestionContentDTO> questionContentDTOS = JSONUtil.toList(json, QuestionContentDTO.class);
+        List<QuestionContentDTO> questionContentDTOS = null;
+        try {
+            questionContentDTOS= JSONUtil.toList(json, QuestionContentDTO.class);
+        }catch (BusinessException e){
+            ThrowUtils.throwIf(true, ErrorCode.OPERATION_ERROR, "AI生成题目失败");
+        }
         return ResultUtils.success(questionContentDTOS);
     }
 

@@ -92,21 +92,21 @@ public class AppController {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User user = userService.getLoginUser(request);
-        long id = deleteRequest.getId();
+        Long AppId = deleteRequest.getId();
         // 判断是否存在
-        App oldApp = appService.getById(id);
+        App oldApp = appService.getById(AppId);
         ThrowUtils.throwIf(oldApp == null, ErrorCode.NOT_FOUND_ERROR);
         // 仅本人或管理员可删除
         if (!oldApp.getUserId().equals(user.getId()) && !userService.isAdmin(request)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
         }
         // 操作数据库
-        boolean result = appService.removeById(id);
+        boolean result = appService.removeById(AppId);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         // 删除app应用信息的同时应该也删除该应用下的所有题目数据和评分结果数据
         Question questionServiceOne = questionService.getOne(
                 new QueryWrapper<Question>()
-                        .eq("appId", id)
+                        .eq("appId", AppId)
         );
         if (questionServiceOne != null ){
             boolean questionResult = questionService.removeById(questionServiceOne);
@@ -115,9 +115,9 @@ public class AppController {
         // 删除评分结果数据
         List<ScoringResult> scoringResultList = scoringResultService.list(
                 new QueryWrapper<ScoringResult>()
-                        .eq("appId", id)
+                        .eq("appId", AppId)
         );
-        if (scoringResultList != null || !scoringResultList.isEmpty()){
+        if (scoringResultList != null && scoringResultList.size() > 0){
             boolean scoringResultResult = scoringResultService.removeByIds(scoringResultList);
             ThrowUtils.throwIf(!scoringResultResult, ErrorCode.OPERATION_ERROR);
         }
