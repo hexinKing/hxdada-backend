@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 @ConfigurationProperties(prefix = "wx.open")
 @Data
+@Deprecated
 public class WxOpenConfig {
 
     private String appId;

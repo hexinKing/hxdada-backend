@@ -411,12 +411,12 @@ public class QuestionController {
         StringBuilder stringBuilder = new StringBuilder();
 
         // 获取登录用户
-        User loginUser = userService.getLoginUser(request);
-        // 普通用户使用默认全局线程池,VIP用户或者管理员使用VIP自定义线程池
-        Scheduler scheduler = Schedulers.io();
-        if ("admin".equals(loginUser.getUserRole())) {
-            scheduler = vipScheduler;
-        }
+//        User loginUser = userService.getLoginUser(request);
+//        // 普通用户使用默认全局线程池,VIP用户或者管理员使用VIP自定义线程池
+//        Scheduler scheduler = Schedulers.io();
+//        if ("admin".equals(loginUser.getUserRole())) {
+//            scheduler = vipScheduler;
+//        }
 
         // 使用RxJava订阅数据流，将数据流进行处理
         modelDataFlowable

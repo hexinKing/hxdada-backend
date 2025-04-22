@@ -31,6 +31,7 @@ import java.util.Collections;
 @RestController
 @RequestMapping("/")
 @Slf4j
+@Deprecated
 public class WxMpController {
 
     @Resource

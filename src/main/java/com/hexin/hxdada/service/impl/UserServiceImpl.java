@@ -45,13 +45,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数不能为空");
         }
         if (userAccount.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户账号过短");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不符合要求");
         }
         if (userPassword.length() < 8 || checkPassword.length() < 8) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不符合要求");
         }
         // 密码和校验密码相同
         if (!userPassword.equals(checkPassword)) {
@@ -63,7 +63,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             queryWrapper.eq("userAccount", userAccount);
             long count = this.baseMapper.selectCount(queryWrapper);
             if (count > 0) {
-                throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号重复");
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户已存在");
             }
             // 2. 加密
             String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
@@ -83,13 +83,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public LoginUserVO userLogin(String userAccount, String userPassword, HttpServletRequest request) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数不能为空");
         }
         if (userAccount.length() < 4) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不符合要求");
         }
         if (userPassword.length() < 8) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码不符合要求");
         }
         // 2. 加密
         String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());

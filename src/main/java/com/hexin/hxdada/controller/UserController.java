@@ -44,8 +44,8 @@ public class UserController {
     @Resource
     private UserService userService;
 
-    @Resource
-    private WxOpenConfig wxOpenConfig;
+//    @Resource
+//    private WxOpenConfig wxOpenConfig;
 
     // region 登录相关
 
@@ -57,15 +57,15 @@ public class UserController {
      */
     @PostMapping("/register")
     public BaseResponse<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
-        if (userRegisterRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
+//        if (userRegisterRequest == null) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
         String userAccount = userRegisterRequest.getUserAccount();
         String userPassword = userRegisterRequest.getUserPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
-        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
-            return null;
-        }
+//        if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
+//            return null;
+//        }
         long result = userService.userRegister(userAccount, userPassword, checkPassword);
         return ResultUtils.success(result);
     }
@@ -79,14 +79,14 @@ public class UserController {
      */
     @PostMapping("/login")
     public BaseResponse<LoginUserVO> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
-        if (userLoginRequest == null) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
+//        if (userLoginRequest == null) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
         String userAccount = userLoginRequest.getUserAccount();
         String userPassword = userLoginRequest.getUserPassword();
-        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
+//        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+//            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+//        }
         LoginUserVO loginUserVO = userService.userLogin(userAccount, userPassword, request);
         return ResultUtils.success(loginUserVO);
     }
@@ -94,25 +94,25 @@ public class UserController {
     /**
      * 用户登录（微信开放平台）
      */
-    @GetMapping("/login/wx_open")
-    public BaseResponse<LoginUserVO> userLoginByWxOpen(HttpServletRequest request, HttpServletResponse response,
-            @RequestParam("code") String code) {
-        WxOAuth2AccessToken accessToken;
-        try {
-            WxMpService wxService = wxOpenConfig.getWxMpService();
-            accessToken = wxService.getOAuth2Service().getAccessToken(code);
-            WxOAuth2UserInfo userInfo = wxService.getOAuth2Service().getUserInfo(accessToken, code);
-            String unionId = userInfo.getUnionId();
-            String mpOpenId = userInfo.getOpenid();
-            if (StringUtils.isAnyBlank(unionId, mpOpenId)) {
-                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
-            }
-            return ResultUtils.success(userService.userLoginByMpOpen(userInfo, request));
-        } catch (Exception e) {
-            log.error("userLoginByWxOpen error", e);
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
-        }
-    }
+//    @GetMapping("/login/wx_open")
+//    public BaseResponse<LoginUserVO> userLoginByWxOpen(HttpServletRequest request, HttpServletResponse response,
+//            @RequestParam("code") String code) {
+//        WxOAuth2AccessToken accessToken;
+//        try {
+//            WxMpService wxService = wxOpenConfig.getWxMpService();
+//            accessToken = wxService.getOAuth2Service().getAccessToken(code);
+//            WxOAuth2UserInfo userInfo = wxService.getOAuth2Service().getUserInfo(accessToken, code);
+//            String unionId = userInfo.getUnionId();
+//            String mpOpenId = userInfo.getOpenid();
+//            if (StringUtils.isAnyBlank(unionId, mpOpenId)) {
+//                throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
+//            }
+//            return ResultUtils.success(userService.userLoginByMpOpen(userInfo, request));
+//        } catch (Exception e) {
+//            log.error("userLoginByWxOpen error", e);
+//            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "登录失败，系统错误");
+//        }
+//    }
 
     /**
      * 用户注销
